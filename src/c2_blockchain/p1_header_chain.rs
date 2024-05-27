@@ -81,12 +81,12 @@ impl Header {
 
 /// Build and return a valid chain with exactly five blocks including the genesis block.
 fn build_valid_chain_length_5() -> Vec<Header> {
-    let genesis = Header::genesis();
-
-    (0..5).into_iter().fold(vec![genesis], |mut acc, _| {
-        acc.push(acc.last().unwrap().child());
-        acc
-    })
+    (0..5)
+        .into_iter()
+        .fold(vec![Header::genesis()], |mut acc, _| {
+            acc.push(acc.last().unwrap().child());
+            acc
+        })
 }
 
 /// Build and return a chain with at least three headers.
