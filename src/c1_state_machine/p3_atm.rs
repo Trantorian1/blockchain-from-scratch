@@ -58,7 +58,41 @@ impl StateMachine for Atm {
     type Transition = Action;
 
     fn next_state(starting_state: &Self::State, t: &Self::Transition) -> Self::State {
-        todo!("Exercise 4")
+        match (&starting_state.expected_pin_hash, t) {
+            (Auth::Waiting, Action::SwipeCard(pin)) => {
+                todo!()
+            }
+            _ => todo!(),
+        }
+    }
+}
+
+impl Atm {
+    fn is_valid_pin(&self) -> bool {
+        match self.expected_pin_hash {
+            Auth::Waiting => false,
+            Auth::Authenticating(pin) => {
+                let input = self
+                    .keystroke_register
+                    .iter()
+                    .fold(0, |acc, key| acc * 10 + key.val());
+
+                input == pin
+            }
+            Auth::Authenticated => false,
+        }
+    }
+}
+
+impl Key {
+    pub fn val(&self) -> u64 {
+        match self {
+            Key::One => 1,
+            Key::Two => 2,
+            Key::Three => 3,
+            Key::Four => 4,
+            Key::Enter => 5,
+        }
     }
 }
 
