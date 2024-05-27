@@ -9,7 +9,7 @@ use super::StateMachine;
 pub struct ClothesMachine;
 
 /// Models a piece of clothing throughout its lifecycle.
-#[derive(PartialEq, Eq, Debug)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum ClothesState {
     /// Clean clothes ready to be worn. With some given life left.
     Clean(u64),
@@ -40,7 +40,46 @@ impl StateMachine for ClothesMachine {
     type Transition = ClothesAction;
 
     fn next_state(starting_state: &ClothesState, t: &ClothesAction) -> ClothesState {
-        todo!("Exercise 3")
+        let clothes = starting_state.decrease_life();
+
+        match (&clothes, t) {
+            (ClothesState::Clean(life), ClothesAction::Wear) => ClothesState::Dirty(*life),
+            (ClothesState::Wet(life), ClothesAction::Wear) => ClothesState::Dirty(*life),
+            (ClothesState::Clean(life), ClothesAction::Wash) => ClothesState::Wet(*life),
+            (ClothesState::Dirty(life), ClothesAction::Wash) => ClothesState::Wet(*life),
+            (ClothesState::Wet(life), ClothesAction::Dry) => ClothesState::Clean(*life),
+            (ClothesState::Tattered, _) => ClothesState::Tattered,
+            _ => clothes.clone(),
+        }
+    }
+}
+
+impl ClothesState {
+    fn decrease_life(&self) -> Self {
+        match self {
+            ClothesState::Clean(life) => {
+                if *life > 1 {
+                    ClothesState::Clean(life - 1)
+                } else {
+                    ClothesState::Tattered
+                }
+            }
+            ClothesState::Dirty(life) => {
+                if *life > 1 {
+                    ClothesState::Dirty(life - 1)
+                } else {
+                    ClothesState::Tattered
+                }
+            }
+            ClothesState::Wet(life) => {
+                if *life > 1 {
+                    ClothesState::Wet(life - 1)
+                } else {
+                    ClothesState::Tattered
+                }
+            }
+            ClothesState::Tattered => ClothesState::Tattered,
+        }
     }
 }
 
