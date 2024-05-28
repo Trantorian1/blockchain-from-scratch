@@ -3,6 +3,8 @@
 //! cash bills. Each bill has an amount and an owner, and can be spent in its entirety.
 //! When a state transition spends bills, new bills are created in lesser or equal amount.
 
+use itertools::{FoldWhile, Itertools};
+
 use super::{StateMachine, User};
 use std::collections::HashSet;
 
@@ -54,6 +56,10 @@ impl State {
         self.bills.insert(elem);
         self.increment_serial()
     }
+
+    fn remove_bill(&mut self, elem: &Bill) {
+        self.bills.remove(elem);
+    }
 }
 
 impl FromIterator<Bill> for State {
@@ -94,7 +100,86 @@ impl StateMachine for DigitalCashSystem {
     type Transition = CashTransaction;
 
     fn next_state(starting_state: &Self::State, t: &Self::Transition) -> Self::State {
-        todo!("Exercise 1")
+        match t {
+            // Creates a new bill and stores it into the state.
+            CashTransaction::Mint { minter, amount } => {
+                let new_bill = Bill {
+                    owner: *minter,
+                    amount: *amount,
+                    serial: starting_state.next_serial(),
+                };
+
+                let mut new_state = starting_state.clone();
+                new_state.add_bill(new_bill);
+
+                new_state
+            }
+            CashTransaction::Transfer { spends, receives } => {
+                // Makes sure all bills being spent already exist
+                let all_exist = spends
+                    .iter()
+                    .fold_while(false, |_, bill| {
+                        if !starting_state.bills.contains(bill) {
+                            FoldWhile::Done(false)
+                        } else {
+                            FoldWhile::Continue(true)
+                        }
+                    })
+                    .into_inner();
+
+                // Makes sure there are no duplicated bills.
+                let no_duplicate = spends.iter().all_unique() && receives.iter().all_unique();
+
+                // Makes sure the received value is not greater than what is spent
+                let no_generated_value = spends.iter().map(|bill| bill.amount).sum::<u64>()
+                    > receives.iter().map(|bill| bill.amount).sum();
+
+                // Makes sure none of the received funds already exist on the chain
+                let no_existing = receives
+                    .iter()
+                    .fold_while(true, |_, bill| {
+                        if starting_state.bills.contains(bill) {
+                            FoldWhile::Done(false)
+                        } else {
+                            FoldWhile::Continue(true)
+                        }
+                    })
+                    .into_inner();
+
+                // Makes sure none of the generate bills have a value of 0
+                let no_empty_value = receives.iter().fold(true, |_, bill| bill.amount > 0);
+
+                let mut balances = HashSet::new();
+                spends.iter().for_each(||)
+
+                if all_exist && no_duplicate && no_generated_value && no_existing && no_empty_value
+                {
+                    println!("spending");
+
+                    let new_state =
+                        spends
+                            .into_iter()
+                            .fold(starting_state.clone(), |mut state, bill| {
+                                state.remove_bill(bill);
+                                state
+                            });
+
+                    println!("{new_state:?}");
+
+                    let new_state = receives.into_iter().fold(new_state, |mut state, bill| {
+                        state.add_bill(bill.clone());
+                        state
+                    });
+
+                    new_state
+                } else {
+                    println!("NOT spending");
+                    println!("{all_exist} {no_duplicate} {no_generated_value} {no_existing}");
+
+                    starting_state.clone()
+                }
+            }
+        }
     }
 }
 
